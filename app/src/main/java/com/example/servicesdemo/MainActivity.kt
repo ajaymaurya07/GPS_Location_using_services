@@ -1,34 +1,65 @@
 package com.example.servicesdemo
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.databinding.DataBindingUtil
 import com.example.servicesdemo.databinding.ActivityMainBinding
-import org.greenrobot.eventbus.EventBus
-import org.greenrobot.eventbus.Subscribe
 
 class MainActivity : AppCompatActivity() {
 
-    private var _binding: ActivityMainBinding? = null
-    private val binding: ActivityMainBinding
-        get() = _binding!!
-
-
+    lateinit var binding:ActivityMainBinding
     private var service: Intent?=null
 
-    private val backgroundLocation =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-            if (it) {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding=DataBindingUtil.setContentView(this,R.layout.activity_main)
+
+        service = Intent(this,LocationService::class.java)
+        checkPermissions()
+
+
+        binding.apply {
+            startservice.setOnClickListener {
+                checkPermissions()
 
             }
-        }
 
-    private val locationPermissions =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            stopservice.setOnClickListener {
+                stopService(service)
+            }
+        }
+        var filter=IntentFilter("com.example.servicesdemo.ACTION_LOCATION_UPDATE")
+        ContextCompat.registerReceiver(this,locationReceiver, filter, ContextCompat.RECEIVER_EXPORTED);
+
+    }
+
+    private val backgroundLocation = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+
+    private val locationReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val locationlatitude = intent?.getDoubleExtra("latitude",0.0)
+            var locationlongitude=intent?.getDoubleExtra("longitude",0.0)
+
+            binding.latitude.text = "${locationlatitude}"
+            binding.longitude.text = "${locationlongitude}"
+
+            Log.d("TAG", "locationlatitude: $locationlatitude")
+            Log.d("TAG", "locationlongitude: $locationlongitude")
+        }
+    }
+
+
+    private val locationPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
             when {
                 it.getOrDefault(android.Manifest.permission.ACCESS_COARSE_LOCATION, false) -> {
 
@@ -47,32 +78,11 @@ class MainActivity : AppCompatActivity() {
 
                 }
             }
-        }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        _binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        service = Intent(this,LocationService::class.java)
-
-        binding.apply {
-            startservice.setOnClickListener {
-                checkPermissions()
-            }
-
-            stopservice.setOnClickListener {
-                stopService(service)
-            }
-        }
-
     }
 
     override fun onStart() {
         super.onStart()
-        if(!EventBus.getDefault().isRegistered(this)){
-            EventBus.getDefault().register(this)
-        }
+
     }
 
     fun checkPermissions() {
@@ -100,15 +110,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         stopService(service)
-        if(EventBus.getDefault().isRegistered(this)){
-            EventBus.getDefault().unregister(this)
-        }
-    }
 
-    @Subscribe
-    fun receiveLocationEvent(locationEvent: LocationEvent){
-        binding.latitude.text = "${locationEvent.latitude}"
-        binding.longitude.text = "${locationEvent.longitude}"
     }
 
 }

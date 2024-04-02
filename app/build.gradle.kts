@@ -48,7 +48,6 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    implementation("org.greenrobot:eventbus:3.3.1")
     implementation("com.google.android.gms:play-services-location:18.0.0")
 
 

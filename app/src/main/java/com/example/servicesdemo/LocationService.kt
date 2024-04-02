@@ -8,14 +8,13 @@ import android.content.Intent
 import android.location.Location
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.recyclerview.R
 import com.google.android.gms.location.*
 import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
-import org.greenrobot.eventbus.EventBus
 
 class LocationService : Service() {
-
 
     companion object {
         const val CHANNEL_ID = "12345"
@@ -79,11 +78,15 @@ class LocationService : Service() {
 
     private fun onNewLocation(locationResult: LocationResult) {
         location = locationResult.lastLocation
-        EventBus.getDefault().post(LocationEvent(
-            latitude = location?.latitude,
-            longitude = location?.longitude
-        ))
         startForeground(NOTIFICATION_ID,getNotification())
+
+        val broadcastIntent = Intent().apply {
+            action = "com.example.servicesdemo.ACTION_LOCATION_UPDATE"
+            putExtra("latitude",location?.latitude )
+            putExtra("longitude",location?.longitude )
+            Log.d("TAG", "onNewLocation: ${location?.latitude}")
+        }
+        sendBroadcast(broadcastIntent)
     }
 
     fun getNotification():Notification{
